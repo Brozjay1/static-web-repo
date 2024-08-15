@@ -1,0 +1,62 @@
+pipeline {
+    agent { label 'aws-agent' }
+
+    stages {
+        stage('Install Nginx') {
+            steps {
+                echo 'Installing Nginx...'
+                
+                // Install Nginx
+                sh '''
+                    if ! [ -x "$(command -v nginx)" ]; then
+                      sudo apt-get update && sudo apt install -y nginx
+                    fi
+                '''
+            }
+        }
+
+        stage('Start Nginx') {
+            steps {
+                echo 'Starting Nginx...'
+                
+                // Start Nginx
+                sh '''
+                    sudo systemctl enable nginx
+                    sudo systemctl start nginx
+                '''
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning static web app...'
+                
+                // Clone the static web app to the web server directory
+                sh '''
+                    sudo rm -rf /usr/share/nginx/html/*
+                    sudo git clone https://github.com/Brozjay1/static-web-repo.git /usr/share/nginx/html
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                echo 'Verifying that the web app is accessible...'
+                
+                // Test the web app URL
+                sh '''
+                    curl -I http://localhost
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check the logs for more information.'
+        }
+    }
+}
